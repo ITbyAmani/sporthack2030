@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct MainTabView: View {
+    @AppStorage(AppThemePalette.storageKey) private var selectedPaletteRaw = AppThemePalette.defaultPalette.rawValue
     @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
@@ -32,6 +33,7 @@ struct MainTabView: View {
         }
         .tint(AppTheme.interactive(for: colorScheme))
         .background(AppTheme.background(for: colorScheme))
+        .id(selectedPaletteRaw)
     }
 }
 
@@ -61,16 +63,6 @@ private struct ReportsView: View {
             Text("صفحة التقارير")
                 .font(.appFont(.regular, size: 18))
                 .navigationTitle("التقارير")
-        }
-    }
-}
-
-private struct ProfileView: View {
-    var body: some View {
-        NavigationStack {
-            Text("صفحة الملف الشخصي")
-                .font(.appFont(.regular, size: 18))
-                .navigationTitle("الملف الشخصي")
         }
     }
 }

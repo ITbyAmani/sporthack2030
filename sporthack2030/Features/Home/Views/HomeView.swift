@@ -15,11 +15,6 @@ struct HomeView: View {
             }
             .background(AppTheme.background(for: colorScheme))
             .scrollIndicators(.hidden)
-            .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    MockDataChip()
-                }
-            }
             .toolbarColorScheme(colorScheme, for: .navigationBar)
             .navigationBarTitleDisplayMode(.inline)
             .navigationTitle("الرئيسية")
