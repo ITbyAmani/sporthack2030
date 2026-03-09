@@ -47,16 +47,6 @@ private struct WorkoutsView: View {
     }
 }
 
-private struct CameraView: View {
-    var body: some View {
-        NavigationStack {
-            Text("صفحة الكاميرا")
-                .font(.appFont(.regular, size: 18))
-                .navigationTitle("الكاميرا")
-        }
-    }
-}
-
 private struct ReportsView: View {
     var body: some View {
         NavigationStack {

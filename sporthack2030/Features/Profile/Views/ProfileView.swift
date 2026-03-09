@@ -2,7 +2,12 @@ import SwiftUI
 
 struct ProfileView: View {
     @AppStorage(AppThemePalette.storageKey) private var selectedPaletteRaw = AppThemePalette.defaultPalette.rawValue
+    @AppStorage(AppConnection.hostKey) private var backendHost = AppConnection.defaultHost
     @Environment(\.colorScheme) private var colorScheme
+    @State private var hostInput = ""
+    @State private var isTestingConnection = false
+    @State private var connectionMessage: String?
+    @State private var connectionSucceeded = false
 
     private var selectedPalette: AppThemePalette {
         AppThemePalette(rawValue: selectedPaletteRaw) ?? AppThemePalette.defaultPalette
@@ -12,6 +17,7 @@ struct ProfileView: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 14) {
+                    connectionSection
                     themeSection
                     ForEach(AppThemePalette.allCases) { palette in
                         paletteRow(for: palette)
@@ -21,7 +27,77 @@ struct ProfileView: View {
             }
             .background(AppTheme.background(for: colorScheme))
             .navigationTitle("الملف الشخصي")
+            .onAppear {
+                hostInput = backendHost
+            }
         }
+    }
+
+    private var connectionSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("اتصال السيرفر")
+                .font(.appFont(.medium, size: 18))
+                .foregroundStyle(AppTheme.primaryText(for: colorScheme))
+
+            Text("ادخل IP السيرفر مع المنفذ، مثال: 192.168.1.10:5000")
+                .font(.appFont(.regular, size: 13))
+                .foregroundStyle(AppTheme.primaryText(for: colorScheme).opacity(0.7))
+
+            TextField("IP:PORT", text: $hostInput)
+                .font(.appFont(.regular, size: 15))
+                .textInputAutocapitalization(.never)
+                .disableAutocorrection(true)
+                .keyboardType(.numbersAndPunctuation)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 10)
+                .background(AppTheme.background(for: colorScheme))
+                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .stroke(AppTheme.cardBorder(for: colorScheme), lineWidth: 1)
+                )
+
+            Button {
+                backendHost = AppConnection.normalizedHost(hostInput)
+                hostInput = backendHost
+                Task { await testConnection() }
+            } label: {
+                HStack(spacing: 8) {
+                    if isTestingConnection {
+                        ProgressView()
+                            .tint(.white)
+                            .scaleEffect(0.9)
+                    }
+                    Text(isTestingConnection ? "جاري التحقق..." : "حفظ عنوان الاتصال")
+                        .font(.appFont(.medium, size: 14))
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 10)
+                .foregroundStyle(.white)
+                .background(AppTheme.interactive(for: colorScheme))
+                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+            }
+            .disabled(isTestingConnection)
+
+            Text("الرابط الحالي: http://\(AppConnection.normalizedHost(backendHost))")
+                .font(.appFont(.regular, size: 12))
+                .foregroundStyle(AppTheme.primaryText(for: colorScheme).opacity(0.68))
+
+            if let connectionMessage {
+                Text(connectionMessage)
+                    .font(.appFont(.regular, size: 13))
+                    .foregroundStyle(connectionSucceeded ? .green : AppTheme.preventionAlert(for: colorScheme))
+                    .padding(.top, 2)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(16)
+        .background(AppTheme.card(for: colorScheme))
+        .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 22, style: .continuous)
+                .stroke(AppTheme.cardBorder(for: colorScheme), lineWidth: 1)
+        )
     }
 
     private var themeSection: some View {
@@ -86,6 +162,38 @@ struct ProfileView: View {
             )
         }
         .buttonStyle(.plain)
+    }
+
+    @MainActor
+    private func testConnection() async {
+        isTestingConnection = true
+        defer { isTestingConnection = false }
+
+        let urlString = AppConnection.healthURLString(for: backendHost)
+        guard let url = URL(string: urlString) else {
+            connectionSucceeded = false
+            connectionMessage = "فشل الاتصال: عنوان غير صالح."
+            return
+        }
+
+        var request = URLRequest(url: url, timeoutInterval: 4)
+        request.httpMethod = "GET"
+
+        do {
+            let (_, response) = try await URLSession.shared.data(for: request)
+            let statusCode = (response as? HTTPURLResponse)?.statusCode ?? -1
+
+            if statusCode == 200 {
+                connectionSucceeded = true
+                connectionMessage = "تم الاتصال بالسيرفر بنجاح."
+            } else {
+                connectionSucceeded = false
+                connectionMessage = "فشل الاتصال. كود الاستجابة: \(statusCode)."
+            }
+        } catch {
+            connectionSucceeded = false
+            connectionMessage = "فشل الاتصال: تأكد من IP وتشغيل السيرفر."
+        }
     }
 }
 
