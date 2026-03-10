@@ -38,6 +38,8 @@ struct MainTabView: View {
 }
 
 private struct WorkoutsView: View {
+    @Environment(\.colorScheme) private var colorScheme
+
     private let workouts: [Workout] = [
         Workout(
             title: "تمرين الضغط",
@@ -71,12 +73,31 @@ private struct WorkoutsView: View {
 
     var body: some View {
         NavigationStack {
-            List(workouts) { workout in
-                NavigationLink(value: workout) {
-                    WorkoutRow(workout: workout)
+            ScrollView {
+                VStack(alignment: .leading, spacing: 18) {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("جاهز للتمرين؟")
+                            .font(.appFont(.bold, size: 26))
+                        Text("اختر برنامجك اليومي واضغط على التمرين لعرض التفاصيل")
+                            .font(.appFont(.regular, size: 14))
+                            .foregroundStyle(.secondary)
+                    }
+
+                    LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 14) {
+                        ForEach(workouts) { workout in
+                            NavigationLink(value: workout) {
+                                WorkoutCard(workout: workout)
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
                 }
+                .padding()
             }
-            .listStyle(.plain)
+            .background(AppTheme.background(for: colorScheme))
+            .scrollIndicators(.hidden)
+            .toolbarColorScheme(colorScheme, for: .navigationBar)
+            .navigationBarTitleDisplayMode(.inline)
             .navigationTitle("التدريبات")
             .navigationDestination(for: Workout.self) { workout in
                 WorkoutDetailView(workout: workout)
@@ -94,40 +115,50 @@ private struct Workout: Identifiable, Hashable {
     let imageName: String
 }
 
-private struct WorkoutRow: View {
+private struct WorkoutCard: View {
     let workout: Workout
 
     var body: some View {
-        HStack(spacing: 12) {
-            ZStack {
-                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .fill(Color.blue.opacity(0.12))
-                    .frame(width: 60, height: 60)
-
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Spacer()
                 Image(systemName: workout.imageName)
-                    .font(.system(size: 26))
-                    .foregroundStyle(.blue)
+                    .font(.system(size: 34))
+                    .foregroundStyle(.white)
             }
+            .padding(.bottom, 10)
 
-            VStack(alignment: .leading, spacing: 4) {
-                Text(workout.title)
-                    .font(.appFont(.semiBold, size: 17))
-                    .foregroundStyle(.primary)
+            Text(workout.title)
+                .font(.appFont(.semiBold, size: 16))
+                .foregroundStyle(.white)
+                .lineLimit(1)
 
-                Text(workout.subtitle)
-                    .font(.appFont(.regular, size: 13))
-                    .foregroundStyle(.secondary)
-                    .lineLimit(2)
-
-                HStack(spacing: 10) {
-                    Label(workout.duration, systemImage: "clock")
-                    Label(workout.difficulty, systemImage: "flame")
-                }
+            Text(workout.duration)
                 .font(.appFont(.regular, size: 12))
-                .foregroundStyle(.secondary)
-            }
+                .foregroundStyle(.white.opacity(0.9))
+
+            Text(workout.difficulty)
+                .font(.appFont(.regular, size: 12))
+                .foregroundStyle(.white.opacity(0.9))
+                .padding(.horizontal, 10)
+                .padding(.vertical, 4)
+                .background(.white.opacity(0.2))
+                .clipShape(Capsule())
         }
-        .padding(.vertical, 6)
+        .frame(maxWidth: .infinity, minHeight: 150, alignment: .leading)
+        .padding(14)
+        .background(
+            LinearGradient(
+                colors: [Color.indigo, Color.blue],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .stroke(.white.opacity(0.15), lineWidth: 1)
+        )
     }
 }
 
